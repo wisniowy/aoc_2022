@@ -2,7 +2,7 @@ import aoc.days.*
 import org.reflections.Reflections
 
 fun main(args: Array<String>) {
-    val day_n = 4
+    val day_n = 5
     val reflections = Reflections("aoc.days")
 
     val sol = reflections.getSubTypesOf(SolutionDay::class.java)

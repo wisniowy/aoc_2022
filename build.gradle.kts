@@ -14,6 +14,8 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+
+    implementation("org.reflections:reflections:0.10.2")
 }
 
 tasks.test {

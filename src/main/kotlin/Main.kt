@@ -1,11 +1,13 @@
-import aoc.days.SolutionDay1
-import aoc.utils.Reader
+import aoc.days.*
+import org.reflections.Reflections
 
 fun main(args: Array<String>) {
-    println("Hello World!")
+    val day_n = 4
+    val reflections = Reflections("aoc.days")
 
-    // Try adding program arguments via Run/Debug configuration.
-    // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
-    val sol = SolutionDay1()
-    println(sol.partTwo())
+    val sol = reflections.getSubTypesOf(SolutionDay::class.java)
+        .filter { it.simpleName.equals("SolutionDay$day_n") }[0].constructors[0].newInstance() as SolutionDay
+
+    println("Part one: ${sol.partOne()}")
+    println("Part two: ${sol.partTwo()}")
 }

@@ -2,18 +2,18 @@ package aoc.days
 
 import aoc.utils.Reader
 
-class SolutionDay1 {
+class SolutionDay1 : SolutionDay(1) {
 
-    fun partOne() : Any {
-        return parseInput(Reader.inputAsString(1))
+    override fun partOne() : Any {
+        return parseInput(Reader.inputAsString(day_n))
             .map { it.sum() }
             .sortedDescending()
             .take(1)
             .sum()
     }
 
-    fun partTwo() : Any {
-        return parseInput(Reader.inputAsString(1))
+    override fun partTwo() : Any {
+        return parseInput(Reader.inputAsString(day_n))
             .map { it.sum() }
             .sortedDescending()
             .take(3)

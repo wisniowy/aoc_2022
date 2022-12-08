@@ -5,6 +5,7 @@ import aoc.utils.Reader
 class SolutionDay8 : SolutionDay(8) {
 
     private data class Direction(val xStart: Int?, val xEnd: Int?, val yStart: Int?, val yEnd: Int?, val step: Int)
+
     override fun partOne() : Any {
         val treeMatrix = parseMatrix(Reader.inputAsStringList(day_n))
         val height = treeMatrix.size

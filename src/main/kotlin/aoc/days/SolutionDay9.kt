@@ -67,13 +67,13 @@ class SolutionDay9 : SolutionDay(9) {
 
                     if (abs(prevKnotPosition.x - knotPosition.x) > 1
                         || abs(prevKnotPosition.y - knotPosition.y) > 1) {
-                        val newTailPosition = Position(knotPosition.x, knotPosition.y)
-                        newTailPosition.x += (prevKnotPosition.x - knotPosition.x) / Math.max(
+                        val newKnotPosition = Position(knotPosition.x, knotPosition.y)
+                        newKnotPosition.x += (prevKnotPosition.x - knotPosition.x) / Math.max(
                             abs(prevKnotPosition.x - knotPosition.x), 1)
-                        newTailPosition.y += (prevKnotPosition.y - knotPosition.y) / Math.max(
+                        newKnotPosition.y += (prevKnotPosition.y - knotPosition.y) / Math.max(
                             abs(prevKnotPosition.y - knotPosition.y), 1)
 
-                       knotsPositions[i] = newTailPosition
+                       knotsPositions[i] = newKnotPosition
                     }
                 }
                 tailPositions.add(knotsPositions.last())

@@ -2,30 +2,87 @@ package aoc.days
 
 import aoc.utils.Reader
 
+/*
+    https://www.khanacademy.org/computing/computer-science/cryptography/modarithmetic/a/modular-addition-and-subtraction
+
+    Modular addition:
+    (A + B) mod C = (A mod C + B mod C) mod C
+
+    Modular multiplication:
+    (A * B) mod C = (A mod C * B mod C) mod C
+ */
 class SolutionDay11 : SolutionDay(11) {
 
-    data class Operation(val first: Long?, val second: Long?, val func: (Long, Long) -> Long)
-    data class Test(val divisor: Long, val ifTrueMonkey: Int, val ifFalseMonkey: Int)
-    data class Monkey(val monkeyId: Int, val items: ArrayDeque<Long>, val operation: Operation, val test: Test)
+    abstract class Expression {
+        var value: Long? = null
+        val reminders = mutableMapOf<Long, Long>()
 
-    companion object {
-        val MONKEY_REGEX = "^Monkey (\\d): Starting items: ([0-9 ,]+) Operation: new = ([old*+0-9 ]+) Test: divisible by (\\d+) If true: throw to monkey (\\d) If false: throw to monkey (\\d+)\$".toRegex()
+        abstract fun getVal(): Long
+        abstract fun rem(divisor: Long): Long
     }
 
-    fun Char.toOperationFunc(): (Long, Long) -> Long {
+    class AdditionExpression(val expr1: Expression, val expr2: Expression) : Expression() {
+        override fun getVal(): Long {
+            return expr1.getVal() + expr2.getVal()
+        }
+
+        override fun rem(divisor: Long): Long {
+            return reminders.computeIfAbsent(divisor) { (expr1.rem(divisor) + expr2.rem(divisor)) % divisor }
+        }
+    }
+
+    class MultiplicationExpression(val expr1: Expression, val expr2: Expression) : Expression() {
+        override fun getVal(): Long {
+            return expr1.getVal() * expr2.getVal()
+        }
+
+        override fun rem(divisor: Long): Long {
+            return reminders.computeIfAbsent(divisor) { (expr1.rem(divisor) * expr2.rem(divisor)) % divisor }
+        }
+    }
+
+    private class ValueExpression(val v: Long) : Expression() {
+        override fun getVal(): Long {
+            return v
+        }
+
+        override fun rem(divisor: Long): Long {
+            return v % divisor
+        }
+    }
+
+    data class Operation(
+        val sign: Char,
+        val first: Long?,
+        val second: Long?,
+        val func: (Expression, Expression) -> Expression
+    )
+
+    data class Test(val divisor: Long, val ifTrueMonkey: Int, val ifFalseMonkey: Int)
+    data class Monkey(val monkeyId: Int, val items: ArrayDeque<Expression>, val operation: Operation, val test: Test)
+
+    companion object {
+        val MONKEY_REGEX =
+            "^Monkey (\\d): Starting items: ([0-9 ,]+) Operation: new = ([old*+0-9 ]+) Test: divisible by (\\d+) If true: throw to monkey (\\d) If false: throw to monkey (\\d+)\$".toRegex()
+    }
+
+    fun Char.toOperationFunc(): (Expression, Expression) -> Expression {
         when (this) {
-            '*' -> return { a, b -> a * b }
-            '+' -> return { a, b -> a + b }
+            '*' -> return { a, b -> MultiplicationExpression(a, b) }
+            '+' -> return { a, b -> AdditionExpression(a, b) }
             else -> error("illegal args")
         }
     }
-    override fun partOne(): Any {
-        val rounds = 20
 
-        return monkeyBusiness(rounds, 3)
+    override fun partOne(): Any {
+        return monkeyBusiness(20, 3)
     }
 
-    private fun monkeyBusiness(rounds: Int, worryLevelDivisor: Int): Long {
+    override fun partTwo(): Any {
+        return monkeyBusiness(10000, null)
+    }
+
+    private fun monkeyBusiness(rounds: Int, worryLevelDivisor: Int?): Long {
         val monkeys = parseInput(Reader.inputAsString(day_n))
         val monkeysInspections: MutableMap<Int, Long> = monkeys.map { it.value.monkeyId to 0L }.toMap().toMutableMap()
 
@@ -35,39 +92,36 @@ class SolutionDay11 : SolutionDay(11) {
                 val operation = monkey.operation
                 val test = monkey.test
 
-
                 while (items.isNotEmpty()) {
                     val item = items.removeFirst()
-                    monkeysInspections[monkey.monkeyId] = monkeysInspections[monkey.monkeyId]!! + 1L
+                    monkeysInspections[monkey.monkeyId] = monkeysInspections[monkey.monkeyId]!! + 1
 
-                    val firstOperand = if (operation.first == null) item else operation.first
-                    val secondOperand = if (operation.second == null) item else operation.second
-                    val new: Long = operation.func.invoke(firstOperand, secondOperand) / worryLevelDivisor
+                    val firstExpression = if (operation.first == null) item else ValueExpression(operation.first)
+                    val secondExpression = if (operation.second == null) item else ValueExpression(operation.second)
+                    var new: Expression = operation.func.invoke(firstExpression, secondExpression)
+                    new = if (worryLevelDivisor != null) ValueExpression(new.getVal() / worryLevelDivisor) else new
 
-                    val newMonkeyId = if (new % test.divisor == 0L) test.ifTrueMonkey else test.ifFalseMonkey
+                    val newMonkeyId = if (new.rem(test.divisor) == 0L) test.ifTrueMonkey else test.ifFalseMonkey
 
                     monkeys[newMonkeyId]!!.items.add(new)
                 }
             }
         }
 
-
         return monkeysInspections.values.sorted().takeLast(2).reduce { first, second -> first * second }
-    }
-
-    override fun partTwo(): Any {
-        return monkeyBusiness(10000, 1)
     }
 
     private fun parseInput(input: String): LinkedHashMap<Int, Monkey> {
         val monkeys = LinkedHashMap<Int, Monkey>()
 
         input.split("\n\n").forEach { monkey ->
-            val monkeyMatch = MONKEY_REGEX.find(monkey.replace("\n", "")
-                .replace(" +".toRegex(), " "))!!.destructured
+            val monkeyMatch = MONKEY_REGEX.find(
+                monkey.replace("\n", "").replace(" +".toRegex(), " ")
+            )!!.destructured
 
             val monkeyId = monkeyMatch.component1().toInt()
-            val items = monkeyMatch.component2().split(", ").map { it.toLong() }.toMutableList()
+            val items =
+                monkeyMatch.component2().split(", ").map { it.toLong() }.map { ValueExpression(it) }.toMutableList()
             val operationStr = monkeyMatch.component3().split(" ")
             val divisor = monkeyMatch.component4().toLong()
             val testTrueMonkeyId = monkeyMatch.component5().toInt()
@@ -77,8 +131,7 @@ class SolutionDay11 : SolutionDay(11) {
             val op = operationStr[1][0].toOperationFunc()
 
             val test = Test(divisor, testTrueMonkeyId, testFalseMonkeyId)
-            val operation = Operation(firstOperand, secondOperand, op)
-
+            val operation = Operation(operationStr[1][0], firstOperand, secondOperand, op)
 
             monkeys.put(monkeyId, Monkey(monkeyId, ArrayDeque(items), operation, test))
         }

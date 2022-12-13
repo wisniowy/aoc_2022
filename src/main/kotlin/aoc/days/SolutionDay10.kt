@@ -69,7 +69,6 @@ class SolutionDay10 : SolutionDay(10) {
             currentCycle += 1
         }
 
-        println(crtScreen.map { it.joinToString("")}.joinToString("\n"))
         return crtScreen.map { it.joinToString("")}.joinToString("\n")
     }
 

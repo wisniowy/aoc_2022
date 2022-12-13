@@ -29,8 +29,10 @@ fun solve(sol: SolutionDay) {
     val partTwoResult = measureTime { sol.partTwo() }
 
     println(String.format(ROW_FORMAT, sol.day_n,
-        partOneResult.result.toString(), "${partOneResult.measuredTime} ms",
-        partTwoResult.result.toString(), "${partTwoResult.measuredTime} ms"))
+        if (partOneResult.result.toString().length <= 15) partOneResult.result.toString() else "<TLDR>",
+        "${partOneResult.measuredTime} ms",
+        if (partTwoResult.result.toString().length <= 15) partTwoResult.result.toString() else "<TLDR>",
+        "${partTwoResult.measuredTime} ms"))
 }
 
 fun measureTime(solutionFunction: () -> Any): Result {

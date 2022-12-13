@@ -10,11 +10,11 @@ internal class SolutionDay11Test {
 
     @Test
     fun partOne() {
-        kotlin.test.assertEquals(10605, day.partOne())
+        kotlin.test.assertEquals(10605L, day.partOne())
     }
 
     @Test
     fun partTwo() {
-        kotlin.test.assertEquals(2713310158, day.partTwo())
+        kotlin.test.assertEquals(2713310158L, day.partTwo())
     }
 }

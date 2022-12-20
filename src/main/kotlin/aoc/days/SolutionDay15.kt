@@ -28,12 +28,50 @@ class SolutionDay15 : SolutionDay(15) {
 
     private data class Entity(val entityType: EntityType, val sensorId: Int)
 
-    private data class Node(val x: Int, val y: Int)
+    data class Node(val x: Int, val y: Int)
 
     private data class Beacon(val node: Node, val manhattanDistance: Int)
 
+    fun Node.getMDistanceEdgeNodes(manhattanDistance: Int): Sequence<Node> {
+        val sensorX = this.x
+        val sensorY = this.y
+        val topNode = Node(sensorX, sensorY - manhattanDistance)
+        val bottomNode = Node(sensorX, sensorY + manhattanDistance)
+
+        return sequence {
+            yield(topNode)
+            var leftNode = Node(topNode.x - 1, topNode.y + 1)
+            var rightNode = Node(topNode.x + 1, topNode.y + 1)
+            while (leftNode.x >= sensorX - manhattanDistance && leftNode.y <= sensorY) {
+                yield(leftNode)
+                leftNode = Node(leftNode.x - 1, leftNode.y + 1)
+                yield(rightNode)
+                rightNode = Node(rightNode.x + 1, rightNode.y + 1)
+            }
+
+            yield(bottomNode)
+            leftNode = Node(bottomNode.x - 1, bottomNode.y - 1)
+            rightNode = Node(bottomNode.x + 1, bottomNode.y - 1)
+            while (leftNode.x >= sensorX - manhattanDistance && leftNode.y >= sensorY) {
+                yield(leftNode)
+                leftNode = Node(leftNode.x - 1, leftNode.y - 1)
+                yield(rightNode)
+                rightNode = Node(rightNode.x + 1, rightNode.y - 1)
+            }
+        }
+    }
+
     companion object {
         val SENSOR_REGEX = "Sensor at x=(-?\\d+), y=(-?\\d+): closest beacon is at x=(-?\\d+), y=(-?\\d+)".toRegex()
+        val DIRECTIONS = listOf(Pair(-1, -1),
+            Pair(0, -1),
+            Pair(1, -1),
+            Pair(-1, 0),
+            Pair(1, 0),
+            Pair(-1, 1),
+            Pair(0, 1),
+            Pair(1, 1)
+        )
     }
 
     var PART_ONE_Y: Int? = null
@@ -42,6 +80,12 @@ class SolutionDay15 : SolutionDay(15) {
     private fun occupiedXRange(sensorX: Int, sensorY: Int, y: Int, manhattanDistance: Int): Set<Int>? {
         val range = (sensorX - manhattanDistance + abs(sensorY - y))..(sensorX + manhattanDistance - abs(sensorY - y))
         return if (range.last < range.first) null else range.toSet()
+    }
+
+    private fun isOccupied(sensorX: Int, sensorY: Int, x: Int, y: Int, manhattanDistance: Int): Boolean {
+        if (sensorX == x && sensorY == y) return false
+        val range = (sensorX - manhattanDistance + abs(sensorY - y))..(sensorX + manhattanDistance - abs(sensorY - y))
+        return if (range.last < range.first) false else range.contains(x)
     }
 
     override fun partOne(): Any {
@@ -58,28 +102,23 @@ class SolutionDay15 : SolutionDay(15) {
 
     override fun partTwo(): Any {
         val manhattanDistances = parseInput(Reader.inputAsStringList(day_n))
-        val possibleXRange: Set<Int> = (0..PART_MAX_X_Y!!).toSet().minus(manhattanDistances.map { (node, beacon) ->
-            val minX = node.x - beacon.manhattanDistance
-            val maxX = node.x + beacon.manhattanDistance
-            return@map (max(minX, 0)..min(maxX, PART_MAX_X_Y!!)).toSet()
-        }.reduce { s1, s2 -> s1.union(s2) })
 
-        var beaconPosition: Node? = null
+        var beaconNode: Node? = null
 
-        Arrays.stream((0..PART_MAX_X_Y!!).toList().toIntArray()).parallel().forEach { y ->
-            println(y)
-            val occupiedXR = manhattanDistances.map m2@{ (node, beacon) -> return@m2 occupiedXRange(node.x, node.y, y, beacon.manhattanDistance) }
-                .filterNotNull()
-                .reduce { s1, s2 -> s1.union(s2) }
+        manhattanDistances.forEach m1@{ (sensor, beacon) ->
+            sensor.getMDistanceEdgeNodes(beacon.manhattanDistance + 1).forEach  m2@{ edgeNode ->
+                if (edgeNode.x >= 0 && edgeNode.x <= PART_MAX_X_Y!! && edgeNode.y >= 0 && edgeNode.y <= PART_MAX_X_Y!!) {
+                val isNodeOccupied = manhattanDistances.map { (s, b) ->
+                    isOccupied(s.x, s.y, edgeNode.x, edgeNode.y, b.manhattanDistance)
+                }.any { it == true }
 
-            val freeXR = possibleXRange.minus(occupiedXR)
-            if (freeXR.isNotEmpty()) {
-                beaconPosition = Node(freeXR.first(), y)
-                return@forEach
-            }
+                if (isNodeOccupied == false) {
+                    beaconNode = edgeNode
+                    return@m1
+                } }}
         }
 
-        return 4000000 * beaconPosition!!.x + beaconPosition!!.y
+        return 4000000L * beaconNode!!.x.toLong() + beaconNode!!.y.toLong()
     }
 
     private fun parseInput(lines: List<String>): Map<Node, Beacon> {
